@@ -1,0 +1,2 @@
+from instaframe import Instaframe
+
