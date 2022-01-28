@@ -25,7 +25,7 @@ class Instaframe:
             self.frame[:,:,i] = self.color[i]
 
     def __resize(self, index):
-        scale_percent = (self.width-2*self.border)/self.img[index].shape[1]
+        scale_percent = (max(self.width,self.height)-2*self.border)/max(self.img[index].shape)
         new_width  = int(self.img[index].shape[1] * scale_percent)
         new_height = int(self.img[index].shape[0] * scale_percent)
 
@@ -57,6 +57,7 @@ class Instaframe:
             if (self.img[-1].shape != img.shape or img.size < 0):
                 return 0
         return 1
+    
     #Public methods------------------------------
     def set_frame(self, width, height):
         if (width >= 0 and height >= 0):
