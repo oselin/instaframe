@@ -25,7 +25,11 @@ class Instaframe:
             self.frame[:,:,i] = self.color[i]
 
     def __resize(self, index):
-        scale_percent = (max(self.width,self.height)-2*self.border)/max(self.img[index].shape)
+        if (self.img[index].shape[0] > self.img[index].shape[1]):
+            scale_percent = (self.height-2*self.border)/max(self.img[index].shape)
+        else:
+            scale_percent = (self.width-2*self.border)/max(self.img[index].shape)
+
         new_width  = int(self.img[index].shape[1] * scale_percent)
         new_height = int(self.img[index].shape[0] * scale_percent)
 
@@ -57,6 +61,43 @@ class Instaframe:
             if (self.img[-1].shape != img.shape or img.size < 0):
                 return 0
         return 1
+    
+    def __set_threshold(self, mode, lim):
+        threshold = [0,0]
+
+        if mode == "|":
+            threshold = [-self.border/2, self.frame.shape[1]/2 - lim[1]]
+
+        elif mode == "/":
+            if (self.img[0].shape[0] > self.img[0].shape[1]):
+                threshold = [(self.img[0].shape[0]-self.img[0].shape[1])/2 - self.border/2, self.img[0].shape[1]+ self.border/2]
+            else:
+                threshold = [-self.border/2, self.img[0].shape[1]-(self.img[0].shape[1]-self.img[0].shape[0])/2 + self.border/2]
+
+        elif mode == "-":
+                threshold = [-self.border/2, self.frame.shape[0] - lim[0] - self.border/2]
+
+        elif mode == "\\":
+            if (self.img[0].shape[0] > self.img[0].shape[1]):
+                threshold = [-self.border/2, (self.img[0].shape[0]-self.img[0].shape[1])/2 - self.border/2]
+            else:
+                threshold = [-self.border/2, (self.img[0].shape[1]-self.img[0].shape[0])/2 - self.border/2]
+        
+        return threshold
+
+    def __update_threshold(self, mode, threshold, border):
+        if   mode == "|":
+            threshold[0] += 1
+        elif mode == "/":
+            threshold[0] += 1
+            threshold[1] -= 1
+        elif mode == "-":
+            threshold[1] += 1
+        elif mode == "\\":
+            threshold[0] += 1
+            threshold[1] += 1
+
+        return threshold
     
     #Public methods------------------------------
     def set_frame(self, width, height):
@@ -136,55 +177,49 @@ class Instaframe:
         lim = [int((self.frame.shape[0]-self.img[0].shape[0])/2), int((self.frame.shape[1]-self.img[0].shape[1])/2)]
    
         #Image composition
-        threshold = 0
+        threshold = self.__set_threshold(mode, lim)
         for row in range(self.frame.shape[0]):
             for column in range(self.frame.shape[1]):
+                irow    = row   -lim[0]
+                icolumn = column-lim[1]
+
                 if row < lim[0] or row >= (self.frame.shape[0]-lim[0]) or column < lim[1] or column >= (self.frame.shape[1]-lim[1]):
                     img[row,column,:] = self.frame[row,column,:]
                 
                 else:
-                    irow    = row   -lim[0]
-                    icolumn = column-lim[1]
-
-                    if mode == "":
-                        img[row, column, :] = self.frame[row, column, :]
-
-                    elif mode == '|':
-                        if (column < self.frame.shape[1]/2):
+                    if mode == '|':
+                        if (icolumn < threshold[1]):
                             img[row, column, :] = self.img[0][irow, icolumn, :]
                         else:
                             img[row, column, :] = self.img[1][irow, icolumn, :]
 
-                    elif mode == '/':       
-                        if (icolumn == 0):
-                            threshold -= 1
-                        if (irow == 0 and icolumn == 0):
-                            threshold = (min(self.img[0].shape[0],self.img[0].shape[1])+self.frame.shape[1]-2*lim[1])/2   
-
-                        if (icolumn < threshold):
+                    elif mode == '/':    
+                        if ( icolumn < threshold[1]):
                             img[row, column, :] = self.img[0][irow, icolumn, :]
                         else:
                             img[row, column, :] = self.img[1][irow, icolumn, :]
                         
                     elif mode == '-':
-                        if (row < self.frame.shape[0]/2):
+                        if (irow < threshold[0]):
                             img[row, column, :] = self.img[0][irow, icolumn, :]
                         else:
                             img[row, column, :] = self.img[1][irow, icolumn, :]
 
                     elif mode == '\\':
-                        if (icolumn == 0):
-                            threshold += 1
-                        if (irow == 0 and icolumn == 0):
-                            threshold = (-min(self.img[0].shape[0],self.img[0].shape[1])+self.frame.shape[1])/2
-
-                        if (column < threshold):
-                            img[row, column, :] = self.img[0][irow, icolumn, :]
-                        else:
+                        if (icolumn > threshold[1]):
                             img[row, column, :] = self.img[1][irow, icolumn, :]
+                        else:
+                            img[row, column, :] = self.img[0][irow, icolumn, :]
 
                     else:
-                        raise ""
+                        img[row, column, :] = self.frame[row, column, :]
+           
+            
+                if border:
+                    for i in range(-1,1): 
+                        img[int(lim[0]+threshold[0]), int(lim[1]+threshold[1]+i), :] = [0,0,0]
+                threshold = self.__update_threshold(mode, threshold, border)
+
         
         if roundedCorners:
             img = self.__set_rounded_corners(img, lim, radius)
