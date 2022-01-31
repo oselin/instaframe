@@ -35,26 +35,23 @@ class Instaframe:
 
         self.img[index] =  cv2.resize(self.img[index], [new_width, new_height], interpolation = cv2.INTER_AREA)
 
-    def __set_rounded_corners(self, img, lim, radius):
+    def __set_rounded_corners(self, lim, radius):
         for x in np.arange(0,radius+0.01,0.01):
             y_corner = math.ceil(math.sqrt(radius**2-x**2))
             
             x = math.ceil(x)
             for y in range(radius-y_corner):
                 #Top-left corner
-                img[lim[0]+y, lim[1]+radius-x, :] = self.frame[0,0,:]
+                self.output[lim[0]+y, lim[1]+radius-x, :] = self.frame[0,0,:]
 
                 #Top-right corner
-                img[lim[0]+y, self.frame.shape[1]-lim[1]-radius+x, :] = self.frame[0,0,:]
+                self.output[lim[0]+y, self.frame.shape[1]-lim[1]-radius+x, :] = self.frame[0,0,:]
 
                 #Bottom-left
-                img[self.frame.shape[0]-lim[0]-y, lim[1]+radius-x, :] = self.frame[0,0,:]
+                self.output[self.frame.shape[0]-lim[0]-y, lim[1]+radius-x, :] = self.frame[0,0,:]
             
                 #Bottom-right
-                img[self.frame.shape[0]-lim[0]-y, self.frame.shape[1]-lim[1]-radius+x, :] = self.frame[0,0,:]
-
-
-        return img
+                self.output[self.frame.shape[0]-lim[0]-y, self.frame.shape[1]-lim[1]-radius+x, :] = self.frame[0,0,:]
 
     def __is_img_valid(self, img):
         if len(self.img) > 0:
@@ -75,7 +72,7 @@ class Instaframe:
                 threshold = [-self.border/2, self.img[0].shape[1]-(self.img[0].shape[1]-self.img[0].shape[0])/2 + self.border/2]
 
         elif mode == "-":
-                threshold = [-self.border/2, self.frame.shape[0] - lim[0] - self.border/2]
+                threshold = [self.img[0].shape[0], -self.border/2]
 
         elif mode == "\\":
             if (self.img[0].shape[0] > self.img[0].shape[1]):
@@ -85,17 +82,31 @@ class Instaframe:
         
         return threshold
 
-    def __update_threshold(self, mode, threshold, border):
+    def __update_threshold(self, mode, vect, threshold, lim, border, vertical=1):
+        if vertical:
+            if (threshold[1] < -self.border/2 or threshold[1] > (self.img[0].shape[1]+self.border/2)):
+                return threshold
+
+        #if irow > threshold[0]:
+        if border:
+            for i in range(-1,1): 
+                self.output[int(lim[0]+threshold[0]), int(lim[1]+threshold[1]+i), :] = [0,0,0]
+                
         if   mode == "|":
-            threshold[0] += 1
+            if vect[0] > threshold[0]:
+                threshold[0] += 1
         elif mode == "/":
-            threshold[0] += 1
-            threshold[1] -= 1
+            if vect[0] > threshold[0]:
+                #print("OK")
+                threshold[0] += 1
+                threshold[1] -= 1
         elif mode == "-":
-            threshold[1] += 1
+            #threshold[1] += 1
+            return threshold
         elif mode == "\\":
-            threshold[0] += 1
-            threshold[1] += 1
+            if vect[0] > threshold[0]:
+                threshold[0] += 1
+                threshold[1] += 1
 
         return threshold
     
@@ -171,7 +182,7 @@ class Instaframe:
             self.__resize(i)
 
         #Create an empty image
-        img = np.zeros([self.frame.shape[0], self.frame.shape[1],3], dtype=np.uint8)
+        self.output = np.zeros([self.frame.shape[0], self.frame.shape[1],3], dtype=np.uint8)
 
         #Find the frame dimensions
         lim = [int((self.frame.shape[0]-self.img[0].shape[0])/2), int((self.frame.shape[1]-self.img[0].shape[1])/2)]
@@ -184,47 +195,42 @@ class Instaframe:
                 icolumn = column-lim[1]
 
                 if row < lim[0] or row >= (self.frame.shape[0]-lim[0]) or column < lim[1] or column >= (self.frame.shape[1]-lim[1]):
-                    img[row,column,:] = self.frame[row,column,:]
+                    self.output[row,column,:] = self.frame[row,column,:]
                 
                 else:
                     if mode == '|':
                         if (icolumn < threshold[1]):
-                            img[row, column, :] = self.img[0][irow, icolumn, :]
+                            self.output[row, column, :] = self.img[0][irow, icolumn, :]
                         else:
-                            img[row, column, :] = self.img[1][irow, icolumn, :]
+                            self.output[row, column, :] = self.img[1][irow, icolumn, :]
 
                     elif mode == '/':    
                         if ( icolumn < threshold[1]):
-                            img[row, column, :] = self.img[0][irow, icolumn, :]
+                            self.output[row, column, :] = self.img[0][irow, icolumn, :]
                         else:
-                            img[row, column, :] = self.img[1][irow, icolumn, :]
+                            self.output[row, column, :] = self.img[1][irow, icolumn, :]
                         
                     elif mode == '-':
                         if (irow < threshold[0]):
-                            img[row, column, :] = self.img[0][irow, icolumn, :]
+                            self.output[row, column, :] = self.img[0][irow, icolumn, :]
                         else:
-                            img[row, column, :] = self.img[1][irow, icolumn, :]
+                            self.output[row, column, :] = self.img[1][irow, icolumn, :]
 
                     elif mode == '\\':
                         if (icolumn > threshold[1]):
-                            img[row, column, :] = self.img[1][irow, icolumn, :]
+                            self.output[row, column, :] = self.img[1][irow, icolumn, :]
                         else:
-                            img[row, column, :] = self.img[0][irow, icolumn, :]
+                            self.output[row, column, :] = self.img[0][irow, icolumn, :]
 
                     else:
-                        img[row, column, :] = self.frame[row, column, :]
-           
-            
-                if border:
-                    for i in range(-1,1): 
-                        img[int(lim[0]+threshold[0]), int(lim[1]+threshold[1]+i), :] = [0,0,0]
-                threshold = self.__update_threshold(mode, threshold, border)
+                        self.output[row, column, :] = self.frame[row, column, :]
+
+                threshold = self.__update_threshold(mode, [irow,icolumn], threshold, lim, border)
 
         
         if roundedCorners:
-            img = self.__set_rounded_corners(img, lim, radius)
-        self.output = img
-
+            self.__set_rounded_corners(lim, radius)
+        
     def save(self, path = 'output.jpg'):
         try:
             cv2.imwrite(path, self.output)

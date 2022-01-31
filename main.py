@@ -12,7 +12,7 @@ myphoto.load_img_frompath("media/pic5.PNG")
 myphoto.load_img_frompath("media/pic6.PNG")
 
 #Merge the photos
-myphoto.merge("-", 1, 50, 2)
+myphoto.merge("/", 1, 50, 2)
 
 #Save the result
 myphoto.save('media/out.jpg')
