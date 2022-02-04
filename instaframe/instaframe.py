@@ -72,11 +72,11 @@ class Instaframe:
                 threshold = [-self.border/2, self.img[0].shape[1]-(self.img[0].shape[1]-self.img[0].shape[0])/2 + self.border/2]
 
         elif mode == "-":
-                threshold = [self.img[0].shape[0], -self.border/2]
+                threshold = [self.img[0].shape[0]/2, -self.border/2]
 
         elif mode == "\\":
             if (self.img[0].shape[0] > self.img[0].shape[1]):
-                threshold = [-self.border/2, (self.img[0].shape[0]-self.img[0].shape[1])/2 - self.border/2]
+                threshold = [(self.img[0].shape[0]-self.img[0].shape[1])/2 - self.border/2,-self.border/2, ]
             else:
                 threshold = [-self.border/2, (self.img[0].shape[1]-self.img[0].shape[0])/2 - self.border/2]
         
@@ -87,13 +87,19 @@ class Instaframe:
             if (threshold[1] < -self.border/2 or threshold[1] > (self.img[0].shape[1]+self.border/2)):
                 return threshold
 
-        #if irow > threshold[0]:
+        
         if border:
-            for i in range(-1,1): 
-                self.output[int(lim[0]+threshold[0]), int(lim[1]+threshold[1]+i), :] = [0,0,0]
-                
+            if mode != '-':
+                for i in range(-1,1): 
+                    self.output[int(lim[0]+threshold[0]), int(lim[1]+threshold[1]+i), :] = [0,0,0]
+            else:
+                if vect[0] == (self.img[0].shape[0]+self.border/2)-1 and vect[1] == 0:
+                    for i in range(-1,1):
+                        for j in range(int(-self.border/2), int(self.img[0].shape[1]+self.border/2)):
+                            self.output[int(lim[0]+threshold[0]+i), int(lim[1]+j), :] = [0,0,0]
+                    threshold[0] +=1
         if   mode == "|":
-            if vect[0] > threshold[0]:
+            if vect[0] > threshold[0] and vect[0] < (self.img[0].shape[0]+self.border/2):
                 threshold[0] += 1
         elif mode == "/":
             if vect[0] > threshold[0]:
@@ -101,7 +107,8 @@ class Instaframe:
                 threshold[0] += 1
                 threshold[1] -= 1
         elif mode == "-":
-            #threshold[1] += 1
+            #if vect[0] < (self.img[0].shape[0]+self.border/2):
+            #    threshold[0] += 1
             return threshold
         elif mode == "\\":
             if vect[0] > threshold[0]:
