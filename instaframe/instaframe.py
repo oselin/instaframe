@@ -230,7 +230,7 @@ class Instaframe:
                             self.output[row, column, :] = self.img[0][irow, icolumn, :]
 
                     else:
-                        self.output[row, column, :] = self.frame[row, column, :]
+                        self.output[row, column, :] = self.img[0][irow, icolumn, :]
 
                 threshold = self.__update_threshold(mode, [irow,icolumn], threshold, lim, border)
 
