@@ -36,7 +36,7 @@ class Instaframe:
         self.img[index] =  cv2.resize(self.img[index], [new_width, new_height], interpolation = cv2.INTER_AREA)
 
     def __set_rounded_corners(self, lim, radius):
-        for x in np.arange(0,radius+0.01,0.01):
+        for x in np.arange(0, radius+0.01, 0.01):
             y_corner = math.ceil(math.sqrt(radius**2-x**2))
             
             x = math.ceil(x)

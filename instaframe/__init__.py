@@ -1,1 +1,1 @@
-from instaframe.instaframe import Instaframe
+from instaframe.instaframe2 import Instaframe
