@@ -74,6 +74,13 @@ class Instaframe:
         elif (self.mode == "-"):
             threshold = [self.img[0].shape[0]/2, 0]
         
+        elif (self.mode == "\\"):
+            p = abs(self.img[0].shape[0] - self.img[0].shape[1])/2
+            if self.isvertical:
+                threshold = [p, 0]
+            else:
+                threshold = [0, p]
+
         return threshold
 
     def __update_threshold(self, threshold):
@@ -104,17 +111,37 @@ class Instaframe:
                 #Bottom-right
                 self.output[self.frame.shape[0]-lim[0]-y, self.frame.shape[1]-lim[1]-radius+x, :] = self.frame[0,0,:]
     
-    def __draw_border(self, border):
+    def __draw_border(self, border, lim):
         if (self.mode == ""):
             return
 
         threshold = self.__set_threshold()
-        
+        if self.mode != "-": threshold[0] -= int(self.border/2)
+
+        if   self.mode == "/":
+            threshold[1] += int(self.border/2)
+        elif self.mode == "\\" or self.mode == "-":
+            threshold[1] -= int(self.border/2)
+
+
         #Convert the border in an odd number
         if (border%2 == 0): border += 1
-        
-        for i in range(border-1, border+1,1):
-            print(i)
+
+        r = 0
+        if    self.mode == "|": r = self.img[0].shape[0]+self.border
+        elif  self.mode == "-": r = self.img[0].shape[1]+self.border
+        else: r = min(self.img[0].shape[0], self.img[0].shape[1])+self.border
+
+        for i in range(r):
+            for j in range(-int(border/2), int(border/2)+1,1):
+                if self.mode == "-":
+                    self.output[int(lim[0] + threshold[0]), int(lim[1] + threshold[1]+j), :] = [0,0,0]
+                else:
+                    self.output[int(lim[0] + threshold[0]+j), int(lim[1] + threshold[1]), :] = [0,0,0]
+           
+            if   self.mode == "|": threshold[0] += 1
+            elif self.mode == "-": threshold[1] += 1
+            else: self.__update_threshold(threshold)
 
     
     #Public methods------------------------------
@@ -198,8 +225,15 @@ class Instaframe:
                     self.output[lim[0]+int(h/2):lim[0]+h, lim[1]:-lim[1], :] = self.img[1][int(h/2):h, :, :]
                     break
 
-                elif (self.mode == '/' or self.mode == "\\"):    
+                elif (self.mode == '/'):    
                     if (column < threshold[1] or row < threshold[0]):
+                        self.output[a_row, a_column, :] = self.img[0][row, column, :]
+                    else:
+                        self.output[a_row, a_column, :] = self.img[1][row, column, :]
+                        threshold = [threshold[0], threshold[1]]
+
+                elif (self.mode == "\\"):    
+                    if (column < threshold[1]):
                         self.output[a_row, a_column, :] = self.img[0][row, column, :]
                     else:
                         self.output[a_row, a_column, :] = self.img[1][row, column, :]
@@ -213,7 +247,7 @@ class Instaframe:
             if (row > threshold[0]): threshold = self.__update_threshold(threshold)
 
         if (roundedCorners): self.__set_rounded_corners(lim, roundedCorners)
-        self.__draw_border(border)
+        self.__draw_border(border, lim)
             
     def save(self, path = 'output.jpg'):
         try:
